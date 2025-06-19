@@ -1,16 +1,25 @@
 from flask import Flask, render_template, request
-import mysql.connector
+import sqlite3
 
 app = Flask(__name__)
 
-# Connect to XAMPP MySQL (adjust credentials as needed)
-db = mysql.connector.connect(
-    host="localhost",
-    user="root",
-    password="",
-    database="resume_db"
-)
-cursor = db.cursor()
+# Initialize the SQLite database
+def init_db():
+    conn = sqlite3.connect('resume.db')
+    cursor = conn.cursor()
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS contact (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            cell TEXT NOT NULL,
+            email TEXT NOT NULL,
+            address TEXT NOT NULL
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
+init_db()  # Ensure DB is ready on startup
 
 @app.route('/')
 def home():
@@ -31,9 +40,14 @@ def contact():
         cell = request.form['cell']
         email = request.form['email']
         address = request.form['address']
-        cursor.execute("INSERT INTO contact (name, cell, email, address) VALUES (%s, %s, %s, %s)", 
+
+        conn = sqlite3.connect('resume.db')
+        cursor = conn.cursor()
+        cursor.execute("INSERT INTO contact (name, cell, email, address) VALUES (?, ?, ?, ?)",
                        (name, cell, email, address))
-        db.commit()
+        conn.commit()
+        conn.close()
+
         return "Message Sent Successfully!"
     return render_template('contact.html')
 
